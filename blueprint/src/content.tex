@@ -7,7 +7,7 @@
 % can start with a \section or \chapter for instance.
 
 \begin{theorem}[Fermat's Little theorem]
-\lean{Fermatの小定理}
+\lean{Zmod.pow_card_sub_one_eq_one}
 
 $p$ を素数とする。このとき $p$ と互いに素である自然数 $n$ に対して、以下の合同式が成り立つ
 
@@ -15,6 +15,9 @@ $p$ を素数とする。このとき $p$ と互いに素である自然数 $n$ 
 n^{p-1} \equiv 1 \pmod{p}
 \]
 
+\end{theorem}
+
+\begin{proof}
 このことを、3 通りの方法で証明する。
 
 1. $1$ から $p-1$ を $p$ で割った余りを用いた証明
@@ -42,6 +45,9 @@ $(p-1)!$ は $p$ と互いに素であるため、両辺を $(p-1)!$ で割る�
 \[
 n^{p-1} \equiv 1 \pmod{p}
 \]
+
+\end{proof}
+\begin{proof}
 
 2. 二項定理による展開を用いた帰納法による証明
 
@@ -81,6 +87,9 @@ n^p \equiv n \pmod{p}
 n^{p-1} \equiv 1 \pmod{p}
 \]
 
+\end{proof}
+\begin{proof}
+
 3. ラグランジュの定理を用いた証明
 
 ラグランジュの定理とは、有限群 $G$ とその部分群 $H$ に対して、
@@ -105,5 +114,4 @@ n^{p-1} = n^{dm} = (n^d)^m \equiv 1^m = 1 \pmod{p}
 \]
 
 である。
-
-\end{theorem}
+\end{proof}
