@@ -1,4 +1,4 @@
-import Mathlib
+import Mathlib.FieldTheory.Finite.Basic
 
 theorem card (n : ℕ) [Fintype (ZMod n)] : Fintype.card (ZMod n) = n := by
   cases n with
