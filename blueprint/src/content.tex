@@ -8,20 +8,16 @@
 
 \begin{theorem}[Fermat's Little theorem]
 \lean{katabami_theorem_fermat1}
-\lean{katabami_theorem_fermat2}
-
 $p$ を素数とする。このとき $p$ と互いに素である自然数 $n$ に対して、以下の合同式が成り立つ
 
 \[
 n^{p-1} \equiv 1 \pmod{p}
 \]
 
+このことを、$1$ から $p-1$ を $p$ で割った余りを用いて証明する。
 \end{theorem}
 
 \begin{proof}
-このことを、3 通りの方法で証明する。
-
-1. $1$ から $p-1$ を $p$ で割った余りを用いた証明
 
 まず、$n, 2n, \ldots, (p-1)n$ を $p$ で割った余りがどの 2 つも相異なることを示す。
 
@@ -48,9 +44,15 @@ n^{p-1} \equiv 1 \pmod{p}
 \]
 
 \end{proof}
-\begin{proof}
 
-2. 二項定理による展開を用いた帰納法による証明
+\begin{theorem}[Fermat's Little theorem]
+\lean{katabami_theorem_fermat2}
+
+同様の定理を、二項定理による展開を用いた帰納法により証明する。
+
+\end{theorem}
+
+\begin{proof}
 
 \[
 1^p \equiv 1 \pmod{p}
@@ -89,9 +91,11 @@ n^{p-1} \equiv 1 \pmod{p}
 \]
 
 \end{proof}
+\begin{theorem}
+\lean{katabami_theorem_fermat3}
+最後に、ラグランジュの定理を用いた証明を行う。
+\end{theorem}
 \begin{proof}
-
-3. ラグランジュの定理を用いた証明
 
 ラグランジュの定理とは、有限群 $G$ とその部分群 $H$ に対して、
 
