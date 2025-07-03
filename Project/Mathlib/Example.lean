@@ -12,12 +12,7 @@ import Mathlib.Data.Nat.Prime.Basic
 open scoped BigOperators
 
 -- theorem1
-theorem katabami_theorem_fermat1 {p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
-    a ^ (p - 1) ≡ 1 [MOD p] := by sorry
-
 --theorem2 二項定理
-theorem katabami_theorem_fermat2 {p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
-    a ^ (p - 1) ≡ 1 [MOD p] := by sorry
 
 --theorem3 剰余群
 theorem card (n : ℕ) [Fintype (ZMod n)] : Fintype.card (ZMod n) = n := by
