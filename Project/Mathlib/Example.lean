@@ -23,6 +23,7 @@ theorem card (n : ℕ) [Fintype (ZMod n)] : Fintype.card (ZMod n) = n := by
 theorem card_units (p : ℕ) [Fact p.Prime] : Fintype.card (ZMod p)ˣ = p - 1 := by
   rw [Fintype.card_units, card]
 
+/-
 theorem katabami_theorem_fermat1 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) : a ^ (p - 1) ≡ 1 [MOD p] := by
   -- a が単元であることを示す
   -- ZMod p を体として扱う
@@ -40,6 +41,7 @@ theorem katabami_theorem_fermat1 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
 
   -- 単元 u の (p - 1) 乗は単位元 1 になる
   have pow_eq_one : u ^ (p - 1) = 1 := sorry
+-/
 
 --theorem2 二項定理
 open Nat
@@ -70,14 +72,18 @@ theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
     rw [Nat.coprime_zero_left] at ha
     exact hp.ne_one ha
 
-  -- a^p ≡ a [MOD p] を二項展開によって導く
-  have h1 : a ^ p ≡ a [MOD p] := by
-    calc
-      -- 二項展開 (a + 1)^p の形で表現
-      a ^ p
-        = ∑ k in Finset.range (p + 1), choose p k * a ^ k * 1 ^ (p - k) := by
-          simp [add_pow, one_pow]
 
+  -- a ^ p ≡ a [MOD p] を二項展開によって導く(仮定がない場合、a ^ p ≡ a ^ p + 1[MOD p]のはず)
+  have h1 : (a + 1) ^ p ≡ a + 1 [MOD p] := by
+  --帰納法の仮定によってa^p≡1であることを利用している
+    calc
+      -- 二項展開 (a + 1) ^ p の形で表現
+      (a + 1) ^ p
+        = ∑ k ∈ Finset.range (p + 1), p.choose k * a ^ k * 1 ^ (p - k) := by
+          simp [add_pow]
+          rw [mul_comm (a ^ k)]
+          rw?
+          --1 ^ (p - k)を消去
       -- 中間項が 0 (mod p) となることを利用して a + 0 に帰着させる
       _ ≡ a + 0 [MOD p] := by
         -- 1 ≤ k ≤ p−1 の範囲で中間項が 0 になることを示す
@@ -91,20 +97,17 @@ theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
             have h_pos : 0 < h := Nat.lt_of_lt_of_le (by norm_num) (Finset.mem_Ico.mp hk).1
             have h1 : h ≠ 0 := Nat.ne_of_gt h_pos
             have h2 : h < p := (Finset.mem_Ico.mp hk).2
-            have dvd_choose : p ∣ Nat.choose p h := by
-              -- choose(p, h) が p で割り切れることを示す（未完成）
+            have dvd_choose : p ∣ p.choose h := by
+              -- p.choose h が p で割り切れることを示す（未完成）
               sorry
-            have h_choose : (p.choose h : ZMod p) = 0 := by
-              rw [nat_cast_eq_zero_iff_dvd] --ZModPでn=0ならn|pの意味の定理。上で証明できていないためエラー
-              exact dvd_choose
-              sorry
-            rw [h_choose]
+          rw [← nat_cast_eq_zero_iff_dvd] --ZModPで↑n=0とp|nが同値という定理。上で証明できていないためエラー
 
         -- 和の端点 k=0, k=p の項を明示的に計算するために和を分離する
-        rw [Finset.sum_range_succ] -- ∑₀ⁿ⁺¹ → ∑₀ⁿ + f(n)
-        rw [← Nat.cast_choose, Nat.choose_zero_right, Nat.cast_one]
-        rw [pow_zero, one_pow, mul_one, mul_one] -- k = 0 の項
-        rw [add_comm] -- 和の順序を入れ替え
+        rw [Finset.sum_range_succ] -- ∑ₖ₌₀ⁿ⁺¹aₖ  → ∑ₖ₌₀ⁿ aₖ + aₖ₊₁
+        rw [Nat.cast_choose] --chooseを階乗に変形
+        rw [Nat.choose_zero_right] -- 0!
+        rw [Nat.cast_one] -- 1!
+        rw [pow_zero, one_pow, mul_one, mul_one] -- k = 0 の項を計算
         congr 1
         exact h_middle
         done
