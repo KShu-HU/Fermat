@@ -6,10 +6,12 @@ import Mathlib.Data.ZMod.Units
 import Mathlib.Data.Fintype.Basic
 import Mathlib.Data.Fintype.BigOperators
 import Mathlib.Data.Nat.Choose.Basic
+import Mathlib.Data.Nat.Choose.Dvd
 import Mathlib.Tactic
 import Mathlib.Data.Nat.ModEq
 import Mathlib.Data.Nat.Prime.Basic
 import Mathlib.Algebra.BigOperators.Fin
+import Mathlib.Data.Rat.Defs
 
 open scoped BigOperators
 
@@ -53,14 +55,15 @@ theorem nat_cast_eq_zero_iff_dvd {p n : ℕ} [hp : Fact p.Prime] :
   · intro h
     apply Nat.dvd_of_mod_eq_zero
     rw [← ZMod.val_eq_zero] at h
-    have hn_def : (↑n : ZMod p).val = n % p := by sorry
-    rw [hn_def] at h
-    exact h
+    have hn_def : (↑n : ZMod p).val = n % p := by
+      apply ZMod.val_natCast
+    rw [←hn_def]
+    rw [h]
   · intro h
     haveI : NeZero p := ⟨hp.out.ne_zero⟩
     obtain ⟨k, rfl⟩ := h
     rw [← ZMod.val_eq_zero]
-    rw [ZMod.natCast_val] --↑i.val = ↑i.castの変換。ここで↑i.valのiは(p*k)。うまく適用できていない。
+    rw [ZMod.val_natCast] --↑i.val = ↑i.castの変換。ここで↑i.valのiは(p*k)。うまく適用できていない。
     exact Nat.mul_mod_right p k
 
 theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) : a ^ (p - 1) ≡ 1 [MOD p] := by
@@ -72,23 +75,19 @@ theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
     rw [Nat.coprime_zero_left] at ha
     exact hp.ne_one ha
 
-
-  -- a ^ p ≡ a [MOD p] を二項展開によって導く(仮定がない場合、a ^ p ≡ a ^ p + 1[MOD p]のはず)
+  -- (a + 1) ^ p ≡ a + 1 [MOD p] を二項展開によって導く(a ^ p ≡ a [MOD p])
   have h1 : (a + 1) ^ p ≡ a + 1 [MOD p] := by
-  --帰納法の仮定によってa^p≡1であることを利用している
     calc
       -- 二項展開 (a + 1) ^ p の形で表現
       (a + 1) ^ p
         = ∑ k ∈ Finset.range (p + 1), p.choose k * a ^ k * 1 ^ (p - k) := by
-          simp [add_pow]
-          rw [mul_comm (a ^ k)]
-          rw?
-          --1 ^ (p - k)を消去
-      -- 中間項が 0 (mod p) となることを利用して a + 0 に帰着させる
+          --1 ^ (p - k)を消去しつつΣを展開
+          simp [add_pow, mul_comm]
+
       _ ≡ a + 0 [MOD p] := by
         -- 1 ≤ k ≤ p−1 の範囲で中間項が 0 になることを示す
         let terms := Finset.Ico 1 p
-        have h_middle : ∑ k in terms, (p.choose k : ZMod p) * (a : ZMod p) ^ k = 0 := by
+        have h_middle : ∑ k in terms, (p.choose k : ZMod p) * (a : ZMod p) ^ k = 0:= by
           apply Finset.sum_eq_zero
           intro h hk
 
@@ -97,10 +96,8 @@ theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
             have h_pos : 0 < h := Nat.lt_of_lt_of_le (by norm_num) (Finset.mem_Ico.mp hk).1
             have h1 : h ≠ 0 := Nat.ne_of_gt h_pos
             have h2 : h < p := (Finset.mem_Ico.mp hk).2
-            have dvd_choose : p ∣ p.choose h := by
-              -- p.choose h が p で割り切れることを示す（未完成）
-              sorry
-          rw [← nat_cast_eq_zero_iff_dvd] --ZModPで↑n=0とp|nが同値という定理。上で証明できていないためエラー
+            have dvd_choose : p ∣ p.choose h := Nat.Prime.dvd_choose_self hp h1 h2
+            rw [← nat_cast_eq_zero_iff_dvd] --ZModPで↑n=0とp|nが同値という定理
 
         -- 和の端点 k=0, k=p の項を明示的に計算するために和を分離する
         rw [Finset.sum_range_succ] -- ∑ₖ₌₀ⁿ⁺¹aₖ  → ∑ₖ₌₀ⁿ aₖ + aₖ₊₁
@@ -112,6 +109,7 @@ theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
         exact h_middle
         done
 
+/-
   --a ^ (p - 1) * a ≡ aを示す
   have h2: a ^ (p - 1) * a ≡ a [MOD p] := by
     ring_nf
@@ -124,9 +122,9 @@ theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
       _ = a ^ (p + 0)           := by rw [Nat.sub_self]
       _ = a ^ p                 := by rw [add_zero]
       _ ≡ a [MOD p]             := h1
-
-  --両辺をaで割って終了
-  rw[] at h --tacticstateが命題と一致？
+-/
+  --両辺をa+1で割って終了
+  rw []
 
 --theorem3 剰余群
 --theorem1で示した定理をここでも利用
