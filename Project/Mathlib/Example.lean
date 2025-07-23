@@ -48,6 +48,10 @@ theorem katabami_theorem_fermat1 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
 --theorem2 二項定理
 open Nat
 
+lemma dvd_choose (hp : Prime p) (ha : a < p) (hab : b - a < p) (h : p ≤ b) : p ∣ choose b a :=
+  have : a + (b - a) = b := Nat.add_sub_of_le (ha.le.trans h)
+  this ▸ hp.dvd_choose_add ha hab (this.symm ▸ h)
+
   -- a = n (mod n) ↔ a | n
 theorem nat_cast_eq_zero_iff_dvd {p n : ℕ} [hp : Fact p.Prime] :
     (n : ZMod p) = 0 ↔ p ∣ n := by
@@ -63,7 +67,7 @@ theorem nat_cast_eq_zero_iff_dvd {p n : ℕ} [hp : Fact p.Prime] :
     haveI : NeZero p := ⟨hp.out.ne_zero⟩
     obtain ⟨k, rfl⟩ := h
     rw [← ZMod.val_eq_zero]
-    rw [ZMod.val_natCast] --↑i.val = ↑i.castの変換。ここで↑i.valのiは(p*k)。うまく適用できていない。
+    rw [ZMod.val_natCast]
     exact Nat.mul_mod_right p k
 
 theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) : a ^ (p - 1) ≡ 1 [MOD p] := by
@@ -84,30 +88,44 @@ theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
           --1 ^ (p - k)を消去しつつΣを展開
           simp [add_pow, mul_comm]
 
-      _ ≡ a + 0 [MOD p] := by
+      _ ≡ a + 1 [MOD p] := by
         -- 1 ≤ k ≤ p−1 の範囲で中間項が 0 になることを示す
         let terms := Finset.Ico 1 p
-        have h_middle : ∑ k in terms, (p.choose k : ZMod p) * (a : ZMod p) ^ k = 0:= by
+        have h_middle : ∑ k ∈ terms, (p.choose k : ZMod p) * (a : ZMod p) ^ k = 0:= by
           apply Finset.sum_eq_zero
           intro h hk
+          have h_pos : 0 < h := Nat.lt_of_lt_of_le (by norm_num) (Finset.mem_Ico.mp hk).1
+          have p_pos : 0 < p := hp.pos
+          have h1 : h ≠ 0 := Nat.ne_of_gt h_pos
+          have h2 : h < p := (Finset.mem_Ico.mp hk).2
+          -- p.choose h = 0を証明（未完成）
+          haveI : Fact (Nat.Prime p) := ⟨hp⟩
+          have p_neg_h_pos_p : p - h < p := by exact Nat.sub_lt p_pos h_pos
+          have dvd_p_choose : p ∣ choose p h := by
+            apply dvd_choose hp h2
+            apply p_neg_h_pos_p
+            apply le_refl p
+          have p_choose_zero : (↑(p.choose h) : ZMod p) = 0 := by
+            exact (nat_cast_eq_zero_iff_dvd.mpr dvd_p_choose)
+          calc
+            (↑(p.choose h) : ZMod p) * (↑a : ZMod p) ^ h
+                = 0 * (↑a : ZMod p) ^ h := by rw [p_choose_zero]
+            _ = 0 := by rw [zero_mul]
 
           -- 中間項の各 choose(p, h) が p で割り切れる（p は素数であり 0 < h < p）
-          have h_choose : (p.choose h : ZMod p) = 0 := by
-            have h_pos : 0 < h := Nat.lt_of_lt_of_le (by norm_num) (Finset.mem_Ico.mp hk).1
-            have h1 : h ≠ 0 := Nat.ne_of_gt h_pos
-            have h2 : h < p := (Finset.mem_Ico.mp hk).2
-            have dvd_choose : p ∣ p.choose h := Nat.Prime.dvd_choose_self hp h1 h2
-            rw [← nat_cast_eq_zero_iff_dvd] --ZModPで↑n=0とp|nが同値という定理
 
         -- 和の端点 k=0, k=p の項を明示的に計算するために和を分離する
         rw [Finset.sum_range_succ] -- ∑ₖ₌₀ⁿ⁺¹aₖ  → ∑ₖ₌₀ⁿ aₖ + aₖ₊₁
-        rw [Nat.cast_choose] --chooseを階乗に変形
+        rw [Nat.cast_choose (R := ZMod p)]
         rw [Nat.choose_zero_right] -- 0!
         rw [Nat.cast_one] -- 1!
         rw [pow_zero, one_pow, mul_one, mul_one] -- k = 0 の項を計算
         congr 1
         exact h_middle
         done
+
+  --両辺をa+1で割って終了（未完成）
+  rw []
 
 /-
   --a ^ (p - 1) * a ≡ aを示す
@@ -123,8 +141,7 @@ theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
       _ = a ^ p                 := by rw [add_zero]
       _ ≡ a [MOD p]             := h1
 -/
-  --両辺をa+1で割って終了
-  rw []
+
 
 --theorem3 剰余群
 --theorem1で示した定理をここでも利用
