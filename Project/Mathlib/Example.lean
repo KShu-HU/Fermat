@@ -98,7 +98,7 @@ theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
           have p_pos : 0 < p := hp.pos
           have h1 : h ≠ 0 := Nat.ne_of_gt h_pos
           have h2 : h < p := (Finset.mem_Ico.mp hk).2
-          -- p.choose h = 0を証明（未完成）
+          -- p.choose h = 0を証明
           haveI : Fact (Nat.Prime p) := ⟨hp⟩
           have p_neg_h_pos_p : p - h < p := by exact Nat.sub_lt p_pos h_pos
           have dvd_p_choose : p ∣ choose p h := by
@@ -111,20 +111,44 @@ theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
             (↑(p.choose h) : ZMod p) * (↑a : ZMod p) ^ h
                 = 0 * (↑a : ZMod p) ^ h := by rw [p_choose_zero]
             _ = 0 := by rw [zero_mul]
+        --ここまで中間項の計算
 
-          -- 中間項の各 choose(p, h) が p で割り切れる（p は素数であり 0 < h < p）
+        -- 和の端点 k=0, k=p の項を明示的に計算する
+        rw [Finset.sum_range_succ]
+        norm_cast
+        simp [Nat.cast_choose, Nat.cast_pow, Nat.cast_mul, Nat.cast_one]
+        ring_nf at h_middle
+        let terms := Finset.Ico 1 p
+        -- 和の分離
+        have sum_split : ∑ x ∈ Finset.range p, (p.choose x : ZMod p) * (a : ZMod p) ^ x
+          = (p.choose 0 : ZMod p) * (a : ZMod p)^0 + ∑ x ∈ terms, (p.choose x : ZMod p) * (a : ZMod p) ^ x := by
+              have range_eq : Finset.range p = insert 0 (Finset.Ico 1 p) := by
+                rw [Finset.range_eq_Ico]
+                have : Finset.Ico 0 p = insert 0 (Finset.Ico 1 p) := by
+                  apply Finset.ext
+                  intro x
+                  simp only [Finset.mem_Ico, Finset.mem_insert]
+                  constructor
+                  · intro ⟨h₁, h₂⟩
+                    by_cases hx0 : x = 0
+                    · left; exact hx0
+                    · right; exact ⟨Nat.pos_of_ne_zero hx0, h₂⟩
+                  · intro h
+                    cases h with
+                    | inl h0 => rw [h0]; exact ⟨Nat.zero_le _, hp.pos⟩
+                    | inr rw =>
+                      let ⟨h₁, h₂⟩ := rw
+                      exact ⟨Nat.zero_le x, h₂⟩
+                exact this
+              rw [range_eq]
+              simp
+              dsimp [terms]
+              done
+        --ここまで和の分離を示している
+        rw [sum_split]
 
-        -- 和の端点 k=0, k=p の項を明示的に計算するために和を分離する
-        rw [Finset.sum_range_succ] -- ∑ₖ₌₀ⁿ⁺¹aₖ  → ∑ₖ₌₀ⁿ aₖ + aₖ₊₁
-        rw [Nat.cast_choose (R := ZMod p)]
-        rw [Nat.choose_zero_right] -- 0!
-        rw [Nat.cast_one] -- 1!
-        rw [pow_zero, one_pow, mul_one, mul_one] -- k = 0 の項を計算
-        congr 1
-        exact h_middle
-        done
 
-  --両辺をa+1で割って終了（未完成）
+  --h1の両辺をa+1で割って終了（未完成）
   rw []
 
 /-
