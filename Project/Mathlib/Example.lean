@@ -120,8 +120,8 @@ theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
 
   --和の分離の計算
   let terms := Finset.Ico 1 p
-  have sum_split : ∑ x ∈ Finset.range p, (p.choose x : ZMod p) * (a : ZMod p) ^ x + a^p
-    = (p.choose 0 : ZMod p) * (a : ZMod p)^0 + ∑ x ∈ terms, (p.choose x : ZMod p) * (a : ZMod p) ^ x + a^p := by
+  have sum_split : ∑ x ∈ Finset.range p, ↑(p.choose x) * (a : ZMod p) ^ x + a^p
+    = ↑(p.choose 0) * (a : ZMod p)^0 + ∑ x ∈ terms, ↑(p.choose x) * (a : ZMod p) ^ x + a^p := by
         have range_eq : Finset.range p = insert 0 (Finset.Ico 1 p) := by
           rw [Finset.range_eq_Ico]
           have : Finset.Ico 0 p = insert 0 (Finset.Ico 1 p) := by
@@ -154,16 +154,16 @@ theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
           --1 ^ (p - k)を消去しつつΣを展開
           simp [add_pow, mul_comm]
       -- 和の端点 k=0, k=p の項を明示的に計算する
-      _ ≡ ∑ x ∈ Finset.range p, p.choose x * a ^ x + a ^ p [MOD p] := by
+      _ ≡ ∑ x ∈ Finset.range p, ↑(p.choose x) * ↑a ^ x + ↑a ^ p [MOD p]:= by
         rw [Finset.sum_range_succ]
         norm_cast
         simp [Nat.cast_choose, Nat.cast_pow, Nat.cast_mul, Nat.cast_one]
         ring_nf at h_middle
         rfl
-      _ = ↑(p.choose 0) * ↑a ^ 0 + ∑ x ∈ terms, ↑(p.choose x) * ↑a ^ x + ↑a ^ p := by
+      _ ≡ ↑(p.choose 0) * ↑a ^ 0 + ∑ x ∈ terms, ↑(p.choose x) * ↑a ^ x + ↑a ^ p [MOD p]:= by
         rw [sum_split]
 
-      _ = a + 1 := by
+      _ ≡ a + 1 [MOD p]:= by
 
 
 
