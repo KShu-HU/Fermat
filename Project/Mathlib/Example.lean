@@ -12,6 +12,7 @@ import Mathlib.Data.Nat.ModEq
 import Mathlib.Data.Nat.Prime.Basic
 import Mathlib.Algebra.BigOperators.Fin
 import Mathlib.Data.Rat.Defs
+import Mathlib.Data.Nat.Choose.Sum
 
 open scoped BigOperators
 
@@ -48,6 +49,20 @@ theorem katabami_theorem_fermat1 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
 --theorem2 二項定理
 open Nat
 
+theorem Int.natAbs_natCast (n : Nat) : natAbs ↑n = n := rfl
+
+theorem val_natCast (n a : ℕ) : (a : ZMod n).val = a % n := by
+  cases n
+  · rw [Nat.mod_zero]
+    exact Int.natAbs_natCast a
+  · apply Fin.val_natCast
+
+theorem eq_iff_modEq_nat_fermat (n : ℕ) {a b : ℕ} : (a : ZMod n) = b ↔ a ≡ b [MOD n] := by
+  cases n
+  · simp [Nat.ModEq, Nat.mod_zero]
+  · rw [Fin.ext_iff, Nat.ModEq, ← val_natCast, ← val_natCast]
+    exact Iff.rfl
+
 lemma dvd_choose (hp : Prime p) (ha : a < p) (hab : b - a < p) (h : p ≤ b) : p ∣ choose b a :=
   have : a + (b - a) = b := Nat.add_sub_of_le (ha.le.trans h)
   this ▸ hp.dvd_choose_add ha hab (this.symm ▸ h)
@@ -79,6 +94,57 @@ theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
     rw [Nat.coprime_zero_left] at ha
     exact hp.ne_one ha
 
+  -- 1 ≤ k ≤ p−1 の範囲で中間項が 0 になることを示す
+  let terms := Finset.Ico 1 p
+  have h_middle : ∑ k ∈ terms, (p.choose k : ZMod p) * (a : ZMod p) ^ k = 0:= by
+    apply Finset.sum_eq_zero
+    intro h hk
+    have h_pos : 0 < h := Nat.lt_of_lt_of_le (by norm_num) (Finset.mem_Ico.mp hk).1
+    have p_pos : 0 < p := hp.pos
+    have h1 : h ≠ 0 := Nat.ne_of_gt h_pos
+    have h2 : h < p := (Finset.mem_Ico.mp hk).2
+    -- p.choose h = 0を証明
+    haveI : Fact (Nat.Prime p) := ⟨hp⟩
+    have p_neg_h_pos_p : p - h < p := by exact Nat.sub_lt p_pos h_pos
+    have dvd_p_choose : p ∣ choose p h := by
+      apply dvd_choose hp h2
+      apply p_neg_h_pos_p
+      apply le_refl p
+    have p_choose_zero : (↑(p.choose h) : ZMod p) = 0 := by
+      exact (nat_cast_eq_zero_iff_dvd.mpr dvd_p_choose)
+    calc
+      (↑(p.choose h) : ZMod p) * (↑a : ZMod p) ^ h
+          = 0 * (↑a : ZMod p) ^ h := by rw [p_choose_zero]
+      _ = 0 := by rw [zero_mul]
+  --ここまで中間項の計算
+
+  --和の分離の計算
+  let terms := Finset.Ico 1 p
+  have sum_split : ∑ x ∈ Finset.range p, (p.choose x : ZMod p) * (a : ZMod p) ^ x + a^p
+    = (p.choose 0 : ZMod p) * (a : ZMod p)^0 + ∑ x ∈ terms, (p.choose x : ZMod p) * (a : ZMod p) ^ x + a^p := by
+        have range_eq : Finset.range p = insert 0 (Finset.Ico 1 p) := by
+          rw [Finset.range_eq_Ico]
+          have : Finset.Ico 0 p = insert 0 (Finset.Ico 1 p) := by
+            apply Finset.ext
+            intro x
+            simp only [Finset.mem_Ico, Finset.mem_insert]
+            constructor
+            · intro ⟨h₁, h₂⟩
+              by_cases hx0 : x = 0
+              · left; exact hx0
+              · right; exact ⟨Nat.pos_of_ne_zero hx0, h₂⟩
+            · intro h
+              cases h with
+              | inl h0 => rw [h0]; exact ⟨Nat.zero_le _, hp.pos⟩
+              | inr rw =>
+                let ⟨h₁, h₂⟩ := rw
+                exact ⟨Nat.zero_le x, h₂⟩
+          exact this
+        rw [range_eq]
+        simp
+        dsimp [terms]
+        done
+
   -- (a + 1) ^ p ≡ a + 1 [MOD p] を二項展開によって導く(a ^ p ≡ a [MOD p])
   have h1 : (a + 1) ^ p ≡ a + 1 [MOD p] := by
     calc
@@ -87,66 +153,21 @@ theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
         = ∑ k ∈ Finset.range (p + 1), p.choose k * a ^ k * 1 ^ (p - k) := by
           --1 ^ (p - k)を消去しつつΣを展開
           simp [add_pow, mul_comm]
-
-      _ ≡ a + 1 [MOD p] := by
-        -- 1 ≤ k ≤ p−1 の範囲で中間項が 0 になることを示す
-        let terms := Finset.Ico 1 p
-        have h_middle : ∑ k ∈ terms, (p.choose k : ZMod p) * (a : ZMod p) ^ k = 0:= by
-          apply Finset.sum_eq_zero
-          intro h hk
-          have h_pos : 0 < h := Nat.lt_of_lt_of_le (by norm_num) (Finset.mem_Ico.mp hk).1
-          have p_pos : 0 < p := hp.pos
-          have h1 : h ≠ 0 := Nat.ne_of_gt h_pos
-          have h2 : h < p := (Finset.mem_Ico.mp hk).2
-          -- p.choose h = 0を証明
-          haveI : Fact (Nat.Prime p) := ⟨hp⟩
-          have p_neg_h_pos_p : p - h < p := by exact Nat.sub_lt p_pos h_pos
-          have dvd_p_choose : p ∣ choose p h := by
-            apply dvd_choose hp h2
-            apply p_neg_h_pos_p
-            apply le_refl p
-          have p_choose_zero : (↑(p.choose h) : ZMod p) = 0 := by
-            exact (nat_cast_eq_zero_iff_dvd.mpr dvd_p_choose)
-          calc
-            (↑(p.choose h) : ZMod p) * (↑a : ZMod p) ^ h
-                = 0 * (↑a : ZMod p) ^ h := by rw [p_choose_zero]
-            _ = 0 := by rw [zero_mul]
-        --ここまで中間項の計算
-
-        -- 和の端点 k=0, k=p の項を明示的に計算する
+      -- 和の端点 k=0, k=p の項を明示的に計算する
+      _ ≡ ∑ x ∈ Finset.range p, p.choose x * a ^ x + a ^ p [MOD p] := by
         rw [Finset.sum_range_succ]
         norm_cast
         simp [Nat.cast_choose, Nat.cast_pow, Nat.cast_mul, Nat.cast_one]
         ring_nf at h_middle
-        let terms := Finset.Ico 1 p
-        -- 和の分離
-        have sum_split : ∑ x ∈ Finset.range p, (p.choose x : ZMod p) * (a : ZMod p) ^ x
-          = (p.choose 0 : ZMod p) * (a : ZMod p)^0 + ∑ x ∈ terms, (p.choose x : ZMod p) * (a : ZMod p) ^ x := by
-              have range_eq : Finset.range p = insert 0 (Finset.Ico 1 p) := by
-                rw [Finset.range_eq_Ico]
-                have : Finset.Ico 0 p = insert 0 (Finset.Ico 1 p) := by
-                  apply Finset.ext
-                  intro x
-                  simp only [Finset.mem_Ico, Finset.mem_insert]
-                  constructor
-                  · intro ⟨h₁, h₂⟩
-                    by_cases hx0 : x = 0
-                    · left; exact hx0
-                    · right; exact ⟨Nat.pos_of_ne_zero hx0, h₂⟩
-                  · intro h
-                    cases h with
-                    | inl h0 => rw [h0]; exact ⟨Nat.zero_le _, hp.pos⟩
-                    | inr rw =>
-                      let ⟨h₁, h₂⟩ := rw
-                      exact ⟨Nat.zero_le x, h₂⟩
-                exact this
-              rw [range_eq]
-              simp
-              dsimp [terms]
-              done
-        --ここまで和の分離を示している
+        rfl
+      _ = ↑(p.choose 0) * ↑a ^ 0 + ∑ x ∈ terms, ↑(p.choose x) * ↑a ^ x + ↑a ^ p := by
         rw [sum_split]
 
+      _ = a + 1 := by
+
+
+
+    --calc終了
 
   --h1の両辺をa+1で割って終了（未完成）
   rw []
