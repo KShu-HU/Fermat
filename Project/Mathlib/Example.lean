@@ -85,15 +85,8 @@ theorem nat_cast_eq_zero_iff_dvd {p n : ℕ} [hp : Fact p.Prime] :
     rw [ZMod.val_natCast]
     exact Nat.mul_mod_right p k
 
-theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) : a ^ (p - 1) ≡ 1 [MOD p] := by
-
-  -- ℕ型なので a = 0 の場合も含まれる。これを除くため a ≠ 0 を仮定
-  have ha0 : a ≠ 0 := by
-    intro a_zero
-    rw [a_zero] at ha
-    rw [Nat.coprime_zero_left] at ha
-    exact hp.ne_one ha
-
+--帰納法の準備として、(a + 1) ^ p ≡ ↑a ^ p + 1を示しておく
+theorem fermat2_pre {a p : ℕ} (hp : p.Prime) : (a + 1) ^ p ≡ ↑a ^ p + 1 [MOD p] := by
   -- 1 ≤ k ≤ p−1 の範囲で中間項が 0 になることを示す
   let terms := Finset.Ico 1 p
   have h_middle : ∑ k ∈ terms, (p.choose k : ZMod p) * (a : ZMod p) ^ k = 0:= by
@@ -119,9 +112,8 @@ theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
   --ここまで中間項の計算
 
   --和の分離の計算
-  let terms := Finset.Ico 1 p
-  have sum_split : ∑ x ∈ Finset.range p, ↑(p.choose x) * (a : ZMod p) ^ x + a^p
-    = ↑(p.choose 0) * (a : ZMod p)^0 + ∑ x ∈ terms, ↑(p.choose x) * (a : ZMod p) ^ x + a^p := by
+  have sum_split : ∑ x ∈ Finset.range p, ↑(p.choose x) * (a : ZMod p) ^ x
+    = ↑(p.choose 0) * (a : ZMod p)^0 + ∑ x ∈ terms, ↑(p.choose x) * (a : ZMod p) ^ x := by
         have range_eq : Finset.range p = insert 0 (Finset.Ico 1 p) := by
           rw [Finset.range_eq_Ico]
           have : Finset.Ico 0 p = insert 0 (Finset.Ico 1 p) := by
@@ -143,34 +135,60 @@ theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
         rw [range_eq]
         simp
         dsimp [terms]
-        done
 
   -- (a + 1) ^ p ≡ a + 1 [MOD p] を二項展開によって導く(a ^ p ≡ a [MOD p])
-  have h1 : (a + 1) ^ p ≡ a + 1 [MOD p] := by
-    calc
-      -- 二項展開 (a + 1) ^ p の形で表現
-      (a + 1) ^ p
-        = ∑ k ∈ Finset.range (p + 1), p.choose k * a ^ k * 1 ^ (p - k) := by
-          --1 ^ (p - k)を消去しつつΣを展開
-          simp [add_pow, mul_comm]
-      -- 和の端点 k=0, k=p の項を明示的に計算する
-      _ ≡ ∑ x ∈ Finset.range p, ↑(p.choose x) * ↑a ^ x + ↑a ^ p [MOD p]:= by
-        rw [Finset.sum_range_succ]
-        norm_cast
-        simp [Nat.cast_choose, Nat.cast_pow, Nat.cast_mul, Nat.cast_one]
-        ring_nf at h_middle
-        rfl
-      _ ≡ ↑(p.choose 0) * ↑a ^ 0 + ∑ x ∈ terms, ↑(p.choose x) * ↑a ^ x + ↑a ^ p [MOD p]:= by
-        rw [sum_split]
 
-      _ ≡ a + 1 [MOD p]:= by
+  calc
+    -- 二項展開 (a + 1) ^ p の形で表現
+    (a + 1) ^ p
+      = ∑ k ∈ Finset.range (p + 1), p.choose k * a ^ k * 1 ^ (p - k) := by
+        --1 ^ (p - k)を消去しつつΣを展開
+        simp [add_pow, mul_comm]
+    -- 和の端点 k=0, k=p の項を明示的に計算する
+    _ ≡ ∑ x ∈ Finset.range p, ↑(p.choose x) * ↑a ^ x + ↑a ^ p [MOD p]:= by
+      rw [Finset.sum_range_succ]
+      simp [Nat.cast_choose, Nat.cast_pow, Nat.cast_mul, Nat.cast_one]
+      ring_nf at h_middle
+      rfl
+    _ ≡ ↑(p.choose 0) * ↑a ^ 0 + ∑ x ∈ terms, ↑(p.choose x) * ↑a ^ x + ↑a ^ p [MOD p]:= by
+      rw [← eq_iff_modEq_nat_fermat]
+      norm_num
+      rw [sum_split]
+      norm_num
+    _ ≡ ↑a ^ p + 1 [MOD p]:= by
+      simp only [Nat.choose_zero_right, pow_zero, Nat.cast_one]
+      rw [← eq_iff_modEq_nat_fermat]
+      simp
+      rw [h_middle]
+      simp
+      rw [add_comm]
 
+--帰納法を使うため、一度N上の命題として解く
+theorem fermat_binomial_theorem (p: ℕ) (hp : Nat.Prime p) :
+  ∀ n : ℕ, (n + 1) ^ p ≡ n + 1 [MOD p] := by
+  intro n
+  induction n with
+  | zero =>
+    ring_nf
+    rfl
+  | succ n ih =>
+    have h := fermat2_pre hp (a := n + 1)
+    exact Nat.ModEq.trans h (Nat.ModEq.add_right _ ih)
 
-
-    --calc終了
-
-  --h1の両辺をa+1で割って終了（未完成）
+--右辺を求める形式に変える
+theorem fermat_via_binomial (p n : ℕ) (hp : Nat.Prime p) (hcoprime : Nat.Coprime (n + 1) p) :
+  (n + 1) ^ (p - 1) ≡ 1 [MOD p] := by
+  have h := fermat_binomial_theorem p hp n
+  rw [← eq_iff_modEq_nat_fermat]
+  rw [← eq_iff_modEq_nat_fermat] at h
+  --goalの両辺にn+1をかけてhと一致させる
+  rw [← mul_eq_right (n + 1)]
   rw []
+  have h_mul : ↑(n + 1) * ↑((n + 1) ^ (p - 1)) = ↑(n + 1) := by
+
+--実際に示したい形式に変換
+theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) : a ^ (p - 1) ≡ 1 [MOD p] := by
+  have h := fermat_binomial_theorem p hp (n := a - 1)
 
 /-
   --a ^ (p - 1) * a ≡ aを示す
