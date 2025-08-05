@@ -13,6 +13,7 @@ import Mathlib.Data.Nat.Prime.Basic
 import Mathlib.Algebra.BigOperators.Fin
 import Mathlib.Data.Rat.Defs
 import Mathlib.Data.Nat.Choose.Sum
+import Mathlib.Algebra.Group.Basic
 
 open scoped BigOperators
 
@@ -175,16 +176,62 @@ theorem fermat_binomial_theorem (p: ℕ) (hp : Nat.Prime p) :
     have h := fermat2_pre hp (a := n + 1)
     exact Nat.ModEq.trans h (Nat.ModEq.add_right _ ih)
 
---右辺を求める形式に変える
+/-
+この時点でフェルマーの小定理としては解けている
+((n + 1) ^ p ≡ n + 1 [MOD p], n ∈ ℕ(0含む) から a^p ≡ a [MOD p]の形に解いたことになる)
+-/
+
+theorem Nat.not_dvd_one {a : ℕ} (h : a ≠ 1) : ¬ a ∣ 1 := by
+  intro h'
+  have hle : a ≤ 1 := Nat.le_of_dvd (by decide) h'
+  interval_cases a <;> simp_all
+
+theorem Nat.coprime_not_dvd {a b : ℕ} (h : a.Coprime b) (hne : a ≠ 1) : ¬ a ∣ b := by
+  intro h'
+  have d : a ∣ Nat.gcd a b := Nat.dvd_gcd (Nat.dvd_refl a) h'
+  rw [h.gcd_eq_one] at d
+  rw [Nat.dvd_one] at d
+  exact hne d
+
+--右辺をもとの形式に変える
 theorem fermat_via_binomial (p n : ℕ) (hp : Nat.Prime p) (hcoprime : Nat.Coprime (n + 1) p) :
   (n + 1) ^ (p - 1) ≡ 1 [MOD p] := by
   have h := fermat_binomial_theorem p hp n
   rw [← eq_iff_modEq_nat_fermat]
   rw [← eq_iff_modEq_nat_fermat] at h
+  have n_mul: ↑((n + 1) ^ p) = ↑(n + 1) * ↑((n + 1) ^ (p - 1)) := by
+    rw [← Nat.sub_add_cancel (Nat.Prime.pos hp)]
+    rw [Nat.pow_succ]
+    ring_nf
+    simp
+  rw [n_mul] at h
+  rw [mul_comm] at h
+  haveI : Fact (Nat.Prime p) := ⟨hp⟩
+  have inv : (↑(n + 1) : ZMod p)⁻¹ * ↑((n + 1) ^ (p - 1) * (n + 1)) = (↑(n + 1) : ZMod p)⁻¹ * ↑(n + 1) := by
+    rw [h]
+  have a_ne_zero : (↑(n + 1) : ZMod p) ≠ 0 := by
+    intro h_zero
+    rw [nat_cast_eq_zero_iff_dvd] at h_zero
+    have : Nat.Coprime p (n + 1) := hcoprime.symm
+    have hne : n + 1 ≠ 1 := by
+      intro h_eq
+      rw [← nat_cast_eq_zero_iff_dvd] at h_zero
+      have h_dvd : p ∣ n + 1 := by
+        rw [nat_cast_eq_zero_iff_dvd] at h_zero
+        exact h_zero
+      exact Nat.coprime_not_dvd hcoprime.symm (Nat.Prime.ne_one hp) h_dvd
+    have h_dvd : p ∣ n + 1 := by
+      rw [← nat_cast_eq_zero_iff_dvd] at h_zero
+      rw [← nat_cast_eq_zero_iff_dvd]
+      exact h_zero
+    exact Nat.coprime_not_dvd hcoprime.symm (Nat.Prime.ne_one hp) h_dvd
+  apply (mul_right_inj' a_ne_zero).mp
+  rw [mul_comm] at h
+  ring_nf
+  rw [add_comm]
+  rw [Nat.cast_mul] at h
+  rw [h]
   --goalの両辺にn+1をかけてhと一致させる
-  rw [← mul_eq_right (n + 1)]
-  rw []
-  have h_mul : ↑(n + 1) * ↑((n + 1) ^ (p - 1)) = ↑(n + 1) := by
 
 --実際に示したい形式に変換
 theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) : a ^ (p - 1) ≡ 1 [MOD p] := by
