@@ -233,25 +233,16 @@ theorem fermat_via_binomial (p n : ℕ) (hp : Nat.Prime p) (hcoprime : Nat.Copri
   rw [h]
   --goalの両辺にn+1をかけてhと一致させる
 
---実際に示したい形式に変換
-theorem katabami_theorem_fermat2 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) : a ^ (p - 1) ≡ 1 [MOD p] := by
-  have h := fermat_binomial_theorem p hp (n := a - 1)
-
-/-
-  --a ^ (p - 1) * a ≡ aを示す
-  have h2: a ^ (p - 1) * a ≡ a [MOD p] := by
-    ring_nf
-    calc
-      a * a ^ (p - 1)
-        = a ^ (1 + (p - 1))     := by ring
-      _ = a ^ (1 + p - 1)       := by rw [← add_sub_assoc] --適用できない形になっている？
-      _ = a ^ (p + 1 - 1)       := by rw [add_comm]
-      _ = a ^ (p + (1 - 1))     := by rw [add_sub_assoc]
-      _ = a ^ (p + 0)           := by rw [Nat.sub_self]
-      _ = a ^ p                 := by rw [add_zero]
-      _ ≡ a [MOD p]             := h1
--/
-
+--aが正の整数で実際に示したい形式に変換
+theorem katabami_theorem_fermat2 {n p : ℕ} (hp : p.Prime) (hn : n.Coprime p) (hn_pos : 0 < n) : n ^ (p - 1) ≡ 1 [MOD p] := by
+  rw [← Nat.sub_add_cancel hn_pos]
+  simp
+  rw [Nat.sub_add_cancel hn_pos]
+  have := fermat_via_binomial p (n - 1) hp (by rw [Nat.sub_add_cancel hn_pos]; exact hn)
+  rw [← Nat.sub_add_cancel hn_pos] at this
+  simp at this
+  rw [Nat.sub_add_cancel hn_pos] at this
+  exact this
 
 --theorem3 剰余群
 --theorem1で示した定理をここでも利用
