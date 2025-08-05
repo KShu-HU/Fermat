@@ -3,6 +3,7 @@ import Mathlib.Algebra.Field.ZMod
 import Mathlib.Algebra.Ring.Regular
 import Mathlib.Data.Nat.Choose.Dvd
 import Mathlib.Data.Nat.Choose.Sum
+import Mathlib.Data.Nat.Choose.Basic
 import Mathlib.Tactic.IntervalCases
 import Mathlib.Data.Nat.Choose.Cast
 
@@ -41,12 +42,12 @@ theorem katabami_theorem_fermat1 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
 --theorem2 二項定理
 open Nat
 
-theorem Int.natAbs_natCast (n : Nat) : natAbs ↑n = n := rfl
+theorem Int.NatAbs_natCast_ori (n : Nat) : natAbs ↑n = n := rfl
 
 theorem val_natCast (n a : ℕ) : (a : ZMod n).val = a % n := by
   cases n
   · rw [Nat.mod_zero]
-    exact Int.natAbs_natCast a
+    exact Int.NatAbs_natCast_ori a
   · apply Fin.val_natCast
 
 theorem eq_iff_modEq_nat_fermat (n : ℕ) {a b : ℕ} : (a : ZMod n) = b ↔ a ≡ b [MOD n] := by
@@ -55,7 +56,7 @@ theorem eq_iff_modEq_nat_fermat (n : ℕ) {a b : ℕ} : (a : ZMod n) = b ↔ a �
   · rw [Fin.ext_iff, Nat.ModEq, ← val_natCast, ← val_natCast]
     exact Iff.rfl
 
-lemma dvd_choose (hp : Prime p) (ha : a < p) (hab : b - a < p) (h : p ≤ b) : p ∣ choose b a :=
+lemma dvd_choose (p a b : ℕ) (hp : p.Prime) (ha : a < p) (hab : b - a < p) (h : p ≤ b) : p ∣ choose b a :=
   have : a + (b - a) = b := Nat.add_sub_of_le (ha.le.trans h)
   this ▸ hp.dvd_choose_add ha hab (this.symm ▸ h)
 
@@ -91,10 +92,9 @@ theorem fermat2_pre {a p : ℕ} (hp : p.Prime) : (a + 1) ^ p ≡ ↑a ^ p + 1 [M
     -- p.choose h = 0を証明
     haveI : Fact (Nat.Prime p) := ⟨hp⟩
     have p_neg_h_pos_p : p - h < p := by exact Nat.sub_lt p_pos h_pos
+    have p_eq_pos_p : p ≤ p := by rfl
     have dvd_p_choose : p ∣ choose p h := by
-      apply dvd_choose hp h2
-      apply p_neg_h_pos_p
-      apply le_refl p
+      apply dvd_choose p h p hp h2 p_neg_h_pos_p p_eq_pos_p
     have p_choose_zero : (↑(p.choose h) : ZMod p) = 0 := by
       exact (nat_cast_eq_zero_iff_dvd.mpr dvd_p_choose)
     calc
