@@ -1,19 +1,10 @@
 --min_import
-import Mathlib.FieldTheory.Finite.Basic
 import Mathlib.Algebra.Field.ZMod
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.ZMod.Units
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Nat.Choose.Basic
+import Mathlib.Algebra.Ring.Regular
 import Mathlib.Data.Nat.Choose.Dvd
-import Mathlib.Tactic
-import Mathlib.Data.Nat.ModEq
-import Mathlib.Data.Nat.Prime.Basic
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Data.Rat.Defs
 import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Algebra.Group.Basic
+import Mathlib.Tactic.IntervalCases
+import Mathlib.Data.Nat.Choose.Cast
 
 open scoped BigOperators
 

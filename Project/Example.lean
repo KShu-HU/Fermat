@@ -1,168 +1,14 @@
 --min_import
-import Mathlib.FieldTheory.Finite.Basic
 import Mathlib.Algebra.Field.ZMod
-import Mathlib.Data.ZMod.Units
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Tactic
-import Mathlib.Data.Nat.ModEq
-import Mathlib.Data.Nat.Prime.Basic
+import Mathlib.Algebra.Ring.Regular
+import Mathlib.Data.Nat.Choose.Dvd
+import Mathlib.Data.Nat.Choose.Sum
+import Mathlib.Tactic.IntervalCases
+import Mathlib.Data.Nat.Choose.Cast
 
 open scoped BigOperators
 
--- theorem1
-theorem katabami_theorem_fermat1 {p : ℕ} (hp : p.Prime) (ha : a.Coprime p) :
-    a ^ (p - 1) ≡ 1 [MOD p] := by
-
-  -- a_unit: ZMod p の単元
-  let a_unit : (ZMod p)ˣ := ZMod.unitOfCoprime a ha
-
-  -- a' : 単元の値 (ZMod p 型)
-  let a' : ZMod p := a_unit.val
-
-  -- f: (ZMod p)ˣ → (ZMod p)ˣ を定義
-  let f : ZMod p → ZMod p := fun x => ↑a_unit * x
-  have hf : Function.Bijective f := Units.mulLeft_bijective a_unit
-
-  -- 恒等関数との一致
-  have h : ∀ x : (ZMod p)ˣ, f x = x := fun x => rfl
-
-  -- 積の全単射写像による不変性
-  have prod_eq : ∏ x : (ZMod p)ˣ, f x = ∏ x, x :=
-    Fintype.prod_bijective f hf h
-
-  -- 左辺を展開
-  have lhs : ∏ x : (ZMod p)ˣ, a_unit * x = a' ^ (p - 1) * ∏ x, x :=
-    Finset.prod_mul_distrib
-
-  -- ∏ x は 0 でない（mod p）
-  have prod_ne_zero : ∏ x : (ZMod p)ˣ, x ≠ 0 :=
-    ZMod.prod_units_ne_zero hp.ne_zero
-
-  -- 左から消去
-  apply (mul_left_inj' (∏ x : (ZMod p)ˣ, x)).mp at lhs
-  · exact lhs.trans prod_eq
-  · exact prod_ne_zero
-
-  -- ZMod から整数への変換
-  exact ZMod.int_cast_eq_int_cast.mp lhs
-
-
---theorem2 二項定理
-open Nat
-lemma choose_mul_fact_fact {n k : ℕ} (h : k ≤ n) :
-    choose n k * (factorial k * factorial (n - k)) = factorial n := by
-  rw [Nat.choose_eq_factorial_div_factorial h]
-  -- 両辺に (k! * (n-k)!) をかけると式が一致
-  rw [Nat.div_mul_cancel]
-  apply Nat.factorial_mul_factorial_dvd_factorial h
-
-
-theorem prime_dvd_factorial (p : ℕ) (hp : Nat.Prime p) : p ∣ factorial p := by
-  have hp_pos : 0 < p := Nat.Prime.pos hp  -- 素数なら正
-  apply Nat.dvd_factorial hp_pos (le_refl p)
-
-theorem prime_not_dvd_factorial {p k : ℕ} (hp : Nat.Prime p) (hk : k < p) :
-  ¬ p ∣ k! := by
-  intro h
-  -- 任意の素因数 q ∣ k! は q ≤ k
-  -- しかし p ∣ k! かつ p は素数 ⇒ p ≤ k
-  -- これは hk : k < p に矛盾
-  have le := Nat.le_of_dvd (Nat.factorial_pos k) h
-  exact Nat.not_le_of_lt hk le
-
-
-
--- 素数 p と k < p のとき factorial k と p は互いに素
-theorem coprime_factorial_left {p k : ℕ} (kpl : k>0) (hp : Nat.Prime p) (hk : k < p) :
-  Nat.Coprime (factorial k) p := by
-  -- gcd(factorial k, p) の約数は p または 1 のみ
-  -- もし p が gcd に含まれるとすると p | factorial k
-  by_contra h
-  have h_dvd : p ∣ factorial p := prime_dvd_factorial p hp
-  --exact prime_not_dvd_factorial hp.ne_zero hk (p | factorial k)
-  sorry
--- 素数 p は 1 より大きいので factorial k の因子にはならないことから
--- gcd(factorial k, p) = 1 が示された
-
--- choose(p, k) ≡ 0 mod p for 1 ≤ k ≤ p - 1
-theorem Nat.Prime.dvd_choose_self {p k : ℕ} (hp : Nat.Prime p) (hk : k ≠ 0) (hkp : k < p) :
-    p ∣ choose p k := by
-  have hle : k ≤ p := Nat.le_of_lt hkp
-  have h_mul : choose p k * (factorial k * factorial (p - k)) = factorial p := choose_mul_fact_fact hle
-
-  have h_dvd : p ∣ factorial p := prime_dvd_factorial p hp
-
-  have coprime : Nat.Coprime (factorial k * factorial (p - k)) p := by
-    --apply Nat.Coprime.mul
-    --· exact coprime_factorial_left hp hkp
-    --· exact coprime_factorial_left hp (Nat.sub_lt hkp (Nat.pos_of_ne_zero hk))
-    sorry
-
-  have mul_dvd : p ∣ choose p k * (factorial k * factorial (p - k)) := by
-    rw [h_mul]
-    exact h_dvd
-  --exact Nat.dvd_of_mul_dvd_mul_right coprime mul_dvd
-  sorry
-
-lemma choose_self_mod_p {p k : ℕ} (hp : Nat.Prime p) (h1 : 0 < k) (h2 : k < p) :
-  p ∣ Nat.choose p k :=
---Nat.Prime.dvd_choose_self hp h1.ne' h2.ne'
-sorry
-
--- binomial expansion modulo p: (a + 1)^p ≡ a^p + 1 (mod p)
-lemma binomial_mod_p (p a : ℕ) (hp : p.Prime) :
-    (a + 1) ^ p ≡ a ^ p + 1 [MOD p] := by
-  rw [add_pow]
-  let terms := Finset.range (p + 1)
-  have :
-    ∏ k in terms, choose p k * a ^ (p - k) ≡
-      choose p 0 * a ^ p + choose p p * a ^ 0 [MOD p] := by
-    apply Nat.ModEq.symm
-    --rw [Finset.sum_eq_add_sum_diff]
-    let mid := (terms.filter (fun k => k ≠ 0 ∧ k ≠ p))
-    have hmid : ∀ k ∈ mid, p | choose p k := by
-      intro k hk
-      simp only [Finset.mem_filter, Finset.mem_range] at hk
-      exact choose_self_mod_p hp hk.2.1 hk.2.2
-    have zero_mod :
-        ∏ k in mid, choose p k * a ^ (p - k) ≡ 0 [MOD p] := by
-      apply Nat.ModEq.symm
-      apply Nat.ModEq.zero
-      apply Finset.prod_eq_zero (fun k _ => choose p k * a ^ (p - k))
-      obtain ⟨k, hk⟩ := Finset.exists_mem_of_ne_empty mid.nonempty
-      use k
-      simp only [ne_eq, mul_eq_zero]
-      left
-      exact dvd_zero_iff.mp (hmid k hk)
-    simp [zero_mod, choose_zero_right, choose_self]
-    ring
-  rw [add_pow]
-  exact this
-
--- Final theorem: a^p ≡ a mod p implies a^{p-1} ≡ 1 mod p when p ∩ a = 1
-
-theorem katabami_theorem_fermat2
-    {a p : ℕ} (hp : Nat.Prime p) (ha : a.Coprime p) :
-    a ^ (p - 1) ≡ 1 [MOD p] := by
-  have h1 : a ^ p ≡ a [MOD p] := by
-    induction a with
-    | zero =>
-      simp
-    | succ n ih =>
-      have := binomial_mod_p p n hp
-      exact Nat.ModEq.add_right 1 ih
-  have a_ne_zero : a % p ≠ 0 := by
-    apply Nat.coprime_iff_modEq_one.mp ha
-    intro h
-    rw [h] at hp
-    exact hp.not_dvd_zero
-  apply Nat.ModEq.cancel_left_of_coprime a ha
-  exact h1
-
-
---theorem3 剰余群
+--theorem1 余りの積
 theorem card (n : ℕ) [Fintype (ZMod n)] : Fintype.card (ZMod n) = n := by
   cases n with
   | zero => exact (not_finite (ZMod 0)).elim
@@ -171,11 +17,228 @@ theorem card (n : ℕ) [Fintype (ZMod n)] : Fintype.card (ZMod n) = n := by
 
 theorem card_units (p : ℕ) [Fact p.Prime] : Fintype.card (ZMod p)ˣ = p - 1 := by
   rw [Fintype.card_units, card]
-  --card_unitsはZmodP(=ℤ/pℤ)の単元はp-1個のこと。
 
+/-
+theorem katabami_theorem_fermat1 {a p : ℕ} (hp : p.Prime) (ha : a.Coprime p) : a ^ (p - 1) ≡ 1 [MOD p] := by
+  -- a が単元であることを示す
+  -- ZMod p を体として扱う
+  haveI : Fact p.Prime := ⟨hp⟩
+  --実際に単元であることを示す
+  have unit_a : IsUnit (a : ZMod p) := by
+    -- a ≠ 0 mod p
+    have ha_ne_zero : (a : ZMod p) ≠ 0 := by
+      intro h
+      have mod_zero : a % p = 0 := by
+        sorry
+
+    -- 単元 u として a を取り出す
+  obtain ⟨u, hu⟩ := unit_a
+
+  -- 単元 u の (p - 1) 乗は単位元 1 になる
+  have pow_eq_one : u ^ (p - 1) = 1 := sorry
+-/
+
+--theorem2 二項定理
+open Nat
+
+theorem Int.natAbs_natCast (n : Nat) : natAbs ↑n = n := rfl
+
+theorem val_natCast (n a : ℕ) : (a : ZMod n).val = a % n := by
+  cases n
+  · rw [Nat.mod_zero]
+    exact Int.natAbs_natCast a
+  · apply Fin.val_natCast
+
+theorem eq_iff_modEq_nat_fermat (n : ℕ) {a b : ℕ} : (a : ZMod n) = b ↔ a ≡ b [MOD n] := by
+  cases n
+  · simp [Nat.ModEq, Nat.mod_zero]
+  · rw [Fin.ext_iff, Nat.ModEq, ← val_natCast, ← val_natCast]
+    exact Iff.rfl
+
+lemma dvd_choose (hp : Prime p) (ha : a < p) (hab : b - a < p) (h : p ≤ b) : p ∣ choose b a :=
+  have : a + (b - a) = b := Nat.add_sub_of_le (ha.le.trans h)
+  this ▸ hp.dvd_choose_add ha hab (this.symm ▸ h)
+
+  -- a = n (mod n) ↔ a | n
+theorem nat_cast_eq_zero_iff_dvd {p n : ℕ} [hp : Fact p.Prime] :
+    (n : ZMod p) = 0 ↔ p ∣ n := by
+  constructor
+  · intro h
+    apply Nat.dvd_of_mod_eq_zero
+    rw [← ZMod.val_eq_zero] at h
+    have hn_def : (↑n : ZMod p).val = n % p := by
+      apply ZMod.val_natCast
+    rw [←hn_def]
+    rw [h]
+  · intro h
+    haveI : NeZero p := ⟨hp.out.ne_zero⟩
+    obtain ⟨k, rfl⟩ := h
+    rw [← ZMod.val_eq_zero]
+    rw [ZMod.val_natCast]
+    exact Nat.mul_mod_right p k
+
+--帰納法の準備として、(a + 1) ^ p ≡ ↑a ^ p + 1を示しておく
+theorem fermat2_pre {a p : ℕ} (hp : p.Prime) : (a + 1) ^ p ≡ ↑a ^ p + 1 [MOD p] := by
+  -- 1 ≤ k ≤ p−1 の範囲で中間項が 0 になることを示す
+  let terms := Finset.Ico 1 p
+  have h_middle : ∑ k ∈ terms, (p.choose k : ZMod p) * (a : ZMod p) ^ k = 0:= by
+    apply Finset.sum_eq_zero
+    intro h hk
+    have h_pos : 0 < h := Nat.lt_of_lt_of_le (by norm_num) (Finset.mem_Ico.mp hk).1
+    have p_pos : 0 < p := hp.pos
+    have h1 : h ≠ 0 := Nat.ne_of_gt h_pos
+    have h2 : h < p := (Finset.mem_Ico.mp hk).2
+    -- p.choose h = 0を証明
+    haveI : Fact (Nat.Prime p) := ⟨hp⟩
+    have p_neg_h_pos_p : p - h < p := by exact Nat.sub_lt p_pos h_pos
+    have dvd_p_choose : p ∣ choose p h := by
+      apply dvd_choose hp h2
+      apply p_neg_h_pos_p
+      apply le_refl p
+    have p_choose_zero : (↑(p.choose h) : ZMod p) = 0 := by
+      exact (nat_cast_eq_zero_iff_dvd.mpr dvd_p_choose)
+    calc
+      (↑(p.choose h) : ZMod p) * (↑a : ZMod p) ^ h
+          = 0 * (↑a : ZMod p) ^ h := by rw [p_choose_zero]
+      _ = 0 := by rw [zero_mul]
+  --ここまで中間項の計算
+
+  --和の分離の計算
+  have sum_split : ∑ x ∈ Finset.range p, ↑(p.choose x) * (a : ZMod p) ^ x
+    = ↑(p.choose 0) * (a : ZMod p)^0 + ∑ x ∈ terms, ↑(p.choose x) * (a : ZMod p) ^ x := by
+        have range_eq : Finset.range p = insert 0 (Finset.Ico 1 p) := by
+          rw [Finset.range_eq_Ico]
+          have : Finset.Ico 0 p = insert 0 (Finset.Ico 1 p) := by
+            apply Finset.ext
+            intro x
+            simp only [Finset.mem_Ico, Finset.mem_insert]
+            constructor
+            · intro ⟨h₁, h₂⟩
+              by_cases hx0 : x = 0
+              · left; exact hx0
+              · right; exact ⟨Nat.pos_of_ne_zero hx0, h₂⟩
+            · intro h
+              cases h with
+              | inl h0 => rw [h0]; exact ⟨Nat.zero_le _, hp.pos⟩
+              | inr rw =>
+                let ⟨h₁, h₂⟩ := rw
+                exact ⟨Nat.zero_le x, h₂⟩
+          exact this
+        rw [range_eq]
+        simp
+        dsimp [terms]
+
+  -- (a + 1) ^ p ≡ a + 1 [MOD p] を二項展開によって導く(a ^ p ≡ a [MOD p])
+
+  calc
+    -- 二項展開 (a + 1) ^ p の形で表現
+    (a + 1) ^ p
+      = ∑ k ∈ Finset.range (p + 1), p.choose k * a ^ k * 1 ^ (p - k) := by
+        --1 ^ (p - k)を消去しつつΣを展開
+        simp [add_pow, mul_comm]
+    -- 和の端点 k=0, k=p の項を明示的に計算する
+    _ ≡ ∑ x ∈ Finset.range p, ↑(p.choose x) * ↑a ^ x + ↑a ^ p [MOD p]:= by
+      rw [Finset.sum_range_succ]
+      simp [Nat.cast_choose, Nat.cast_pow, Nat.cast_mul, Nat.cast_one]
+      ring_nf at h_middle
+      rfl
+    _ ≡ ↑(p.choose 0) * ↑a ^ 0 + ∑ x ∈ terms, ↑(p.choose x) * ↑a ^ x + ↑a ^ p [MOD p]:= by
+      rw [← eq_iff_modEq_nat_fermat]
+      norm_num
+      rw [sum_split]
+      norm_num
+    _ ≡ ↑a ^ p + 1 [MOD p]:= by
+      simp only [Nat.choose_zero_right, pow_zero, Nat.cast_one]
+      rw [← eq_iff_modEq_nat_fermat]
+      simp
+      rw [h_middle]
+      simp
+      rw [add_comm]
+
+--帰納法を使うため、一度N上の命題として解く
+theorem fermat_binomial_theorem (p: ℕ) (hp : Nat.Prime p) :
+  ∀ n : ℕ, (n + 1) ^ p ≡ n + 1 [MOD p] := by
+  intro n
+  induction n with
+  | zero =>
+    ring_nf
+    rfl
+  | succ n ih =>
+    have h := fermat2_pre hp (a := n + 1)
+    exact Nat.ModEq.trans h (Nat.ModEq.add_right _ ih)
+
+/-
+この時点でフェルマーの小定理としては解けている
+((n + 1) ^ p ≡ n + 1 [MOD p], n ∈ ℕ(0含む) から a^p ≡ a [MOD p]の形に解いたことになる)
+-/
+
+theorem Nat.not_dvd_one {a : ℕ} (h : a ≠ 1) : ¬ a ∣ 1 := by
+  intro h'
+  have hle : a ≤ 1 := Nat.le_of_dvd (by decide) h'
+  interval_cases a <;> simp_all
+
+theorem Nat.coprime_not_dvd {a b : ℕ} (h : a.Coprime b) (hne : a ≠ 1) : ¬ a ∣ b := by
+  intro h'
+  have d : a ∣ Nat.gcd a b := Nat.dvd_gcd (Nat.dvd_refl a) h'
+  rw [h.gcd_eq_one] at d
+  rw [Nat.dvd_one] at d
+  exact hne d
+
+--右辺をもとの形式に変える
+theorem fermat_via_binomial (p n : ℕ) (hp : Nat.Prime p) (hcoprime : Nat.Coprime (n + 1) p) :
+  (n + 1) ^ (p - 1) ≡ 1 [MOD p] := by
+  have h := fermat_binomial_theorem p hp n
+  rw [← eq_iff_modEq_nat_fermat]
+  rw [← eq_iff_modEq_nat_fermat] at h
+  have n_mul: ↑((n + 1) ^ p) = ↑(n + 1) * ↑((n + 1) ^ (p - 1)) := by
+    rw [← Nat.sub_add_cancel (Nat.Prime.pos hp)]
+    rw [Nat.pow_succ]
+    ring_nf
+    simp
+  rw [n_mul] at h
+  rw [mul_comm] at h
+  haveI : Fact (Nat.Prime p) := ⟨hp⟩
+  have inv : (↑(n + 1) : ZMod p)⁻¹ * ↑((n + 1) ^ (p - 1) * (n + 1)) = (↑(n + 1) : ZMod p)⁻¹ * ↑(n + 1) := by
+    rw [h]
+  have a_ne_zero : (↑(n + 1) : ZMod p) ≠ 0 := by
+    intro h_zero
+    rw [nat_cast_eq_zero_iff_dvd] at h_zero
+    have : Nat.Coprime p (n + 1) := hcoprime.symm
+    have hne : n + 1 ≠ 1 := by
+      intro h_eq
+      rw [← nat_cast_eq_zero_iff_dvd] at h_zero
+      have h_dvd : p ∣ n + 1 := by
+        rw [nat_cast_eq_zero_iff_dvd] at h_zero
+        exact h_zero
+      exact Nat.coprime_not_dvd hcoprime.symm (Nat.Prime.ne_one hp) h_dvd
+    have h_dvd : p ∣ n + 1 := by
+      rw [← nat_cast_eq_zero_iff_dvd] at h_zero
+      rw [← nat_cast_eq_zero_iff_dvd]
+      exact h_zero
+    exact Nat.coprime_not_dvd hcoprime.symm (Nat.Prime.ne_one hp) h_dvd
+  apply (mul_right_inj' a_ne_zero).mp
+  rw [mul_comm] at h
+  ring_nf
+  rw [add_comm]
+  rw [Nat.cast_mul] at h
+  rw [h]
+  --goalの両辺にn+1をかけてhと一致させる
+
+--aが正の整数で実際に示したい形式に変換
+theorem katabami_theorem_fermat2 {n p : ℕ} (hp : p.Prime) (hn : n.Coprime p) (hn_pos : 0 < n) : n ^ (p - 1) ≡ 1 [MOD p] := by
+  rw [← Nat.sub_add_cancel hn_pos]
+  simp
+  rw [Nat.sub_add_cancel hn_pos]
+  have := fermat_via_binomial p (n - 1) hp (by rw [Nat.sub_add_cancel hn_pos]; exact hn)
+  rw [← Nat.sub_add_cancel hn_pos] at this
+  simp at this
+  rw [Nat.sub_add_cancel hn_pos] at this
+  exact this
+
+--theorem3 剰余群
+--theorem1で示した定理をここでも利用
 theorem katabami_theorem_fermat3 (p : ℕ) [Fact p.Prime] (a : (ZMod p)ˣ) : a ^ (p - 1) = 1 := by
   rw [← card_units p, pow_card_eq_one]
-  --card_unitsは
   --pow_card_eq_oneはラグランジュの定理の帰結(Gの任意の元gに対して、gの位数はGの位数の約数なのでg^|G|=1)
 
 #min_imports
